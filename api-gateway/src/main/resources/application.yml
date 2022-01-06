@@ -1,0 +1,109 @@
+spring:
+  #main:
+    #web-application-type: reactive 
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: APPLY-FINANCE
+          uri: lb://APPLY-FINANCE
+          predicates:
+            - Path=/apply-finance/**
+          filters:
+            - RewritePath=/fallback/applyFinanceFallBackMethod/(?<path>.*), /$\{path}
+            - name: CircuitBreaker
+              args:
+                name: APPLY-FINANCE
+                fallbackuri: forward:/fallback/applyFinanceFallBackMethod
+        - id: INVOICE-ENTRY
+          uri: lb://INVOICE-ENTRY
+          predicates:
+            - Path=/invoice-entry/**
+          filters:
+            - RewritePath=/fallback/invoiceEntryFallBackMethod/(?<path>.*), /$\{path}
+            - name: CircuitBreaker
+              args:
+                name: INVOICE-ENTRY
+                fallbackuri: forward:/fallback/invoiceEntryFallBackMethod
+management:
+  endpoint:
+    health:
+      show-details: ALWAYS
+      enabled: true
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include:
+          - hystrix.stream
+          - info
+       
+
+logging:
+  level:
+    io:
+      github:
+        resilience4j: DEBUG
+
+resilience4j.circuitbreaker:
+  configs:
+    default:
+      slidingWindowSize: 10
+      minimumNumberOfCalls: 5
+      permittedNumberOfCallsInHalfOpenState: 3
+      automaticTransitionFromOpenToHalfOpenEnabled: true
+      waitDurationInOpenState: 2s
+      failureRateThreshold: 5
+      eventConsumerBufferSize: 10
+      slowCallDurationThreshold: 200ms
+      slowCallRateThreshold: 30
+      recordExceptions:
+        - org.springframework.web.client.HttpServerErrorException
+        - java.io.IOException
+      ignoreExceptions:
+        - java.lang.IllegalStateException
+    shared:
+      slidingWindowSize: 100
+      permittedNumberOfCallsInHalfOpenState: 30
+      waitDurationInOpenState: 1s
+      failureRateThreshold: 50
+      eventConsumerBufferSize: 10
+      ignoreExceptions:
+        - java.lang.IllegalStateException
+  instances:
+    backendA:
+      baseConfig: default
+    backendB:
+      slidingWindowSize: 10
+      minimumNumberOfCalls: 10
+      permittedNumberOfCallsInHalfOpenState: 3
+      waitDurationInOpenState: 1s
+      failureRateThreshold: 50
+      eventConsumerBufferSize: 10
+      recordFailurePredicate: com.durgendra.base.config.HttpInternalServicePredicate
+
+resilience4j.timelimiter:
+  time-limiter-aspect-order: 398
+  configs:
+    default:
+      timeoutDuration: 1s
+      cancelRunningFuture: false
+  instances:
+    backendB:
+      timeoutDuration: 250ms
+        
+    
+server:
+  port: 9191
+    
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    healthcheck:
+      enabled: true
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/

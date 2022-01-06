@@ -1,0 +1,41 @@
+---
+server:
+  port: 7071
+spring:
+  application:
+    name: apply-finance
+  cloud:
+    config:
+      enabled: true
+      profile: L1
+      uri: http://localhost:8888
+  config:
+    cloud:
+      uri: http://localhost:8888
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    password: root
+    url: jdbc:mysql://localhost:3306/micro_service_schema
+    username: root
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL57InnoDBDialect
+    hibernate:
+      ddl-auto: update
+    #properties:
+      #hibernate:
+        #dialect: org.hibernate.dialect.MySQL57InnoDBDialect
+        #format_sql: true
+    show-sql: true
+  profiles:
+    active: L1
+    
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    healthcheck:
+      enabled: true
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
